@@ -8,5 +8,10 @@ func createUserProfile(from claims:AppleSignInClaims, details: AccountDetails?, 
     let userEmails = [UserProfile.UserProfileEmail(value: claims.email, type: "")]
     let displayName = details?.fullName ?? ""
     
-    return UserProfile(id: claims.sub, displayName: displayName, provider: provider, name: nil, emails: userEmails, photos: nil)
+    let name = UserProfile.UserProfileName(
+        familyName: details?.lastName ?? "",
+        givenName: details?.firstName ?? "",
+        middleName: "")
+    
+    return UserProfile(id: claims.sub, displayName: displayName, provider: provider, name: name, emails: userEmails, photos: nil)
 }

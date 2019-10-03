@@ -18,6 +18,12 @@ struct AppleSignInPlist: Decodable {
     
     // Developer's Apple client_id
     let clientId: String
+    
+    // This needs to be the same as the email contained in the email field inside of the idToken-- i.e., the sign in email used with Apple Sign In
+    let email: String
+    
+    // This needs to be the same as the sub field contained inside of the idToken-- i.e., the user identifier used with Apple Sign In
+    let sub: String
 }
 
 final class CredentialsTests: XCTestCase {
@@ -121,7 +127,7 @@ final class CredentialsTests: XCTestCase {
     }
     
     func testRequestSucceedsWithValidAuthHeaderAndAccountDetails() {
-        let accountDetails = AccountDetails(firstName: nil, lastName: nil, fullName: "Christopher Prince")
+        let accountDetails = AccountDetails(firstName: "Christopher", lastName: "Prince", fullName: "Christopher Prince")
         let encoder = JSONEncoder()
         guard let accountDetailsData = try? encoder.encode(accountDetails),
             let accountDetailsString = String(data: accountDetailsData, encoding: .utf8) else {
@@ -137,6 +143,8 @@ final class CredentialsTests: XCTestCase {
             accountDetailsKey: accountDetailsString
         ]
         
+        XCTAssert(appleCredentials.usersCache?.object(forKey: plist.idToken as NSString) == nil)
+        
         performServerTest(router: router) { expectation in
             self.performRequest(method: "get", path: "/handler", headers: headers, callback: { response in
                 guard response?.httpStatusCode == .OK else {
@@ -144,6 +152,29 @@ final class CredentialsTests: XCTestCase {
                     expectation.fulfill()
                     return
                 }
+                
+                guard let profile = self.appleCredentials.usersCache?.object(forKey: self.plist.idToken as NSString) else {
+                    XCTFail()
+                    expectation.fulfill()
+                    return
+                }
+                
+                XCTAssert(profile.userProfile.displayName == accountDetails.fullName)
+                XCTAssert(profile.userProfile.name?.familyName == accountDetails.lastName)
+                XCTAssert(profile.userProfile.name?.givenName == accountDetails.firstName)
+                
+                guard let emails = profile.userProfile.emails,
+                    emails.count == 1 else {
+                    XCTFail()
+                    expectation.fulfill()
+                    return
+                }
+                
+                let email = emails[0]
+                XCTAssert(email.value == self.plist.email)
+                
+                XCTAssert(profile.userProfile.id == self.plist.sub)
+
                 expectation.fulfill()
             })
         }
