@@ -231,7 +231,7 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
             onSuccess(userProfile)
         }
         
-        print("URL: " + req.url)
+        // print("URL: " + req.url)
         req.end()
     }
 }

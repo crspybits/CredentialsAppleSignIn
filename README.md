@@ -15,9 +15,9 @@ https://forums.developer.apple.com/thread/117210
 https://developer.apple.com/documentation/signinwithapplejs/clientconfigi/3230948-clientid
 https://developer.okta.com/blog/2019/06/04/what-the-heck-is-sign-in-with-apple
 
-However-- the default for this just seems to be the reverse domain name style of your app id. For my demo app it is: com.SpasticMuffin.TestAppleSignIn
+However-- the default for the clientId just seems to just be the reverse domain name style of your app id. For my demo app it is: com.SpasticMuffin.TestAppleSignIn
 
-The `tokenTimeToLive` is as usual for Kitura Credentials plugins-- and indicates how long a token can be cached for by this plugin after being validated.
+The `tokenTimeToLive` is as usual for Kitura Credentials plugins-- and indicates how long a token can be cached by this plugin after being validated.
 
 HTTP clients connecting to the server using this Credentials plugin must give the following two header keys:
 
