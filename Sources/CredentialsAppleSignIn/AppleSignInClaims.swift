@@ -38,22 +38,16 @@ class AppleSignInClaims: Claims {
 }
 
 extension AppleSignInClaims {
-    /// Like the method in the JWT, but the leeway is intended: (a) only for the exp, and (b) is used to deal with the fact that Apple Sign In id tokens can't be created more than once every 24 hours.
+    /// Like the method in the JWT, but does not validate the expiry date.
     func validateClaims(leeway: TimeInterval = 0) -> ValidateClaimsResult {
-        if let expirationDate = exp {
-            if expirationDate + leeway < Date() {
-                return .expired
-            }
-        }
-        
         if let notBeforeDate = nbf {
-            if notBeforeDate > Date() {
+            if notBeforeDate > Date() + leeway {
                 return .notBefore
             }
         }
         
         if let issuedAtDate = iat {
-            if issuedAtDate > Date() {
+            if issuedAtDate > Date() + leeway {
                 return .issuedAt
             }
         }

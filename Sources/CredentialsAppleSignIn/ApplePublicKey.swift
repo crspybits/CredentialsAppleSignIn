@@ -50,6 +50,7 @@ extension ApplePublicKey {
     }
 }
 
+// NOTE: I'm not sure if the keys array will ever have more than one key and if so how to choose between them.
 /* Example:
  {
    "keys": [
@@ -67,8 +68,6 @@ extension ApplePublicKey {
 
 extension ApplePublicKey {
     enum TokenVerificationResult {
-        // NOTE: The exp field has *not* been checked.
-        // If you need to ensure that the JWT hasn't expired-- check this!
         case success(AppleSignInClaims)
         
         // Possible failures
@@ -86,7 +85,7 @@ extension ApplePublicKey {
     /// https://developer.apple.com/documentation/signinwithapplejs/clientconfigi/3230948-clientid
     /// And better:
     /// https://developer.okta.com/blog/2019/06/04/what-the-heck-is-sign-in-with-apple
-    func verifyToken(_ token: String, clientId: String, expiryLeeway: TimeInterval) -> TokenVerificationResult {
+    func verifyToken(_ token: String, clientId: String) -> TokenVerificationResult {
         // This is from https://developer.apple.com/documentation/signinwithapplerestapi/verifying_a_user
         
         // Verify the JWS E256 signature using the server’s public key
@@ -129,7 +128,7 @@ extension ApplePublicKey {
             return .badAud(claims.aud)
         }
 
-        let claimVerificationResult = claims.validateClaims(leeway: expiryLeeway)
+        let claimVerificationResult = claims.validateClaims()
         switch claimVerificationResult {
         case .success:
             return .success(claims)

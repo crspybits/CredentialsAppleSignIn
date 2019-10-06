@@ -62,7 +62,6 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
     public let tokenTimeToLive: TimeInterval?
     
     private let clientId: String
-    private let tokenExpiryValidationLeeway: TimeInterval
 
     private var delegate: UserProfileDelegate?
     private var accountDetails: AccountDetails?
@@ -77,12 +76,10 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
     ///
     /// - Parameter clientId: The developer's Apple client_id -- used in Oauth token verification.
     /// - Parameter options: A dictionary of plugin specific options. The keys are defined in `CredentialsAppleSignInOptions`.
-    /// - Parameter tokenTimeToLive: The time in seconds since the user profile was generated that the access token will be considered valid.
-    public init(clientId: String, tokenExpiryValidationLeeway: TimeInterval = 0, options: [String:Any]?=nil, tokenTimeToLive: TimeInterval? = nil) {
+    public init(clientId: String, options: [String:Any]?=nil, tokenTimeToLive: TimeInterval? = nil) {
         delegate = options?[CredentialsAppleSignInOptions.userProfileDelegate] as? UserProfileDelegate
         self.tokenTimeToLive = tokenTimeToLive
         self.clientId = clientId
-        self.tokenExpiryValidationLeeway = tokenExpiryValidationLeeway
     }
     
     /// User profile cache.
@@ -203,7 +200,7 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
                 return
             }
             
-            let tokenVerificationResult = applePublicKey.verifyToken(token, clientId: self.clientId, expiryLeeway: self.tokenExpiryValidationLeeway)
+            let tokenVerificationResult = applePublicKey.verifyToken(token, clientId: self.clientId)
             guard case .success(let claims) = tokenVerificationResult else {
                 Log.error("Failed token verification: \(tokenVerificationResult)")
                 onFailure(FailureResult.failedVerifyingToken)

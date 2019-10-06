@@ -35,7 +35,6 @@ final class CredentialsTests: XCTestCase {
     let authTokenType = "AppleSignInToken"
     let accountDetailsKey = "X-account-details"
     let plist: AppleSignInPlist = CredentialsTests.getPlist()
-    let validationLeeway: TimeInterval = 60 * 60 * 24
     
     static func getPlist() -> AppleSignInPlist {
         // I know this is gross. Swift packages just don't have a good way to access resources right now.
@@ -56,7 +55,7 @@ final class CredentialsTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        appleCredentials = CredentialsAppleSignInToken(clientId: plist.clientId, tokenExpiryValidationLeeway: validationLeeway)
+        appleCredentials = CredentialsAppleSignInToken(clientId: plist.clientId)
         router = setupRouter()
     }
     
