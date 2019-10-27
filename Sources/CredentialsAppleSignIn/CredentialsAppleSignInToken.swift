@@ -8,46 +8,8 @@ import HeliumLogger
 import Foundation
 import LoggerAPI
 
-/// Protocol to make it easier to add token TLL to credentials plugins.
-public protocol CredentialsTokenTLL {
-    var usersCache: NSCache<NSString, BaseCacheElement>? {get}
-    var tokenTimeToLive: TimeInterval? {get}
-}
-
-extension CredentialsTokenTLL {
-    /// Returns true iff the token/UserProfile was found in the cache and onSuccess was called.
-    ///
-    /// - Parameter token: The Oauth2 token, used as a key in the cache.
-    /// - Parameter onSuccess: The callback used in the authenticate method.
-    ///
-    func useTokenInCache(token: String, onSuccess: @escaping (UserProfile) -> Void) -> Bool {
-        #if os(Linux)
-            let key = NSString(string: token)
-        #else
-            let key = token as NSString
-        #endif
-        
-        if let cached = usersCache?.object(forKey: key) {
-            if let ttl = tokenTimeToLive {
-                if Date() < cached.createdAt.addingTimeInterval(ttl) {
-                    onSuccess(cached.userProfile)
-                    return true
-                }
-                // If current time is later than time to live, continue to standard token authentication.
-                // Don't need to evict token, since it will replaced if the token is successfully autheticated.
-            } else {
-                // No time to live set, use token until it is evicted from the cache
-                onSuccess(cached.userProfile)
-                return true
-            }
-        }
-        
-        return false
-    }
-}
-
 /// Authentication using Apple Sign In OAuth2 token.
-public class CredentialsAppleSignInToken: CredentialsPluginProtocol, CredentialsTokenTLL {
+public class CredentialsAppleSignInToken: CredentialsPluginProtocol, CredentialsTokenTTL {
     /// The name of the plugin.
     public var name: String {
         return "AppleSignInToken"
@@ -90,7 +52,6 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
     
     // Optional HTTP header key; contents
     private let accountDetailsKey = "X-account-details"
-
     
     /// Authenticate incoming request using Apple Sign In OAuth2 token.
     ///
@@ -120,24 +81,18 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
             onFailure(nil, nil)
             return
         }
-        
-        if useTokenInCache(token: accessToken, onSuccess: onSuccess) {
-            return
-        }
-        
-        if let details = request.headers[accountDetailsKey],
+                
+        if let details = request.headers[self.accountDetailsKey],
             let detailsData = details.data(using: .utf8) {
             
             do {
-                accountDetails = try decoder.decode(AccountDetails.self, from: detailsData)
+                self.accountDetails = try self.decoder.decode(AccountDetails.self, from: detailsData)
             } catch let error {
                 Log.error("Could not decode Account Details: \(error)")
             }
         }
         
-        doRequest(token: accessToken, options: options, onSuccess: onSuccess, onFailure: { _ in
-            onFailure(nil, nil)
-        })
+        getProfileAndCacheIfNeeded(token: accessToken, options: options, onSuccess: onSuccess, onFailure: onFailure)
     }
     
     enum FailureResult: Swift.Error {
@@ -151,11 +106,9 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
         case failedGettingSelf
     }
     
-    // Fetch
-    func doRequest(token: String, options: [String:Any],
-        onSuccess: @escaping (UserProfile) -> Void,
-        onFailure: @escaping (Swift.Error) -> Void) {
-        
+    // Validate the id token provided by the user-- to the extent we can (without checking its expiry).
+    public func generateNewProfile(token: String, options: [String:Any], completion: @escaping (CredentialsTokenTTLResult) -> Void) {
+    
         // Get Apple's public key to validate the token
         // https://developer.apple.com/documentation/signinwithapplerestapi/fetch_apple_s_public_key_for_verifying_token_signature
 
@@ -167,17 +120,17 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
 
         let req = HTTP.request(requestOptions) {[weak self] response in
             guard let self = self else {
-                onFailure(FailureResult.failedGettingSelf)
+                completion(.error(FailureResult.failedGettingSelf))
                 return
             }
             
             guard let response = response else {
-                onFailure(FailureResult.badResponse)
+                completion(.error(FailureResult.badResponse))
                 return
             }
             
             guard response.statusCode == HTTPStatusCode.OK else {
-                onFailure(FailureResult.statusCode(response.statusCode))
+                completion(.failure(response.statusCode, nil))
                 return
             }
             
@@ -186,7 +139,7 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
                 try response.readAllData(into: &body)
             } catch let error {
                 Log.debug("\(error)")
-                onFailure(FailureResult.failedGettingBodyData)
+                completion(.error(FailureResult.failedGettingBodyData))
                 return
             }
 
@@ -196,20 +149,20 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
                 applePublicKey = try self.decoder.decode(ApplePublicKey.self, from: body)
             } catch let error {
                 Log.error("Failed to decode public key: \(error)")
-                onFailure(FailureResult.failedDecodingPublicKey)
+                completion(.error(FailureResult.failedDecodingPublicKey))
                 return
             }
             
             let tokenVerificationResult = applePublicKey.verifyToken(token, clientId: self.clientId)
             guard case .success(let claims) = tokenVerificationResult else {
                 Log.error("Failed token verification: \(tokenVerificationResult)")
-                onFailure(FailureResult.failedVerifyingToken)
+                completion(.error(FailureResult.failedVerifyingToken))
                 return
             }
             
             guard let userProfile = createUserProfile(from: claims, details: self.accountDetails, for: self.name) else {
                 Log.error("Failed to create user profile")
-                onFailure(FailureResult.failedCreatingProfile)
+                completion(.error(FailureResult.failedCreatingProfile))
                 return
             }
             
@@ -217,18 +170,9 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
                 delegate.update(userProfile: userProfile, from: [:])
             }
             
-            let newCacheElement = BaseCacheElement(profile: userProfile)
-            #if os(Linux)
-                let key = NSString(string: token)
-            #else
-                let key = token as NSString
-            #endif
-            
-            self.usersCache!.setObject(newCacheElement, forKey: key)
-            onSuccess(userProfile)
+            completion(.success(userProfile))
         }
         
-        // print("URL: " + req.url)
         req.end()
     }
 }
