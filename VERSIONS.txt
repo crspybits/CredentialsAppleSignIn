@@ -1,4 +1,4 @@
 CredentialsAppleSignIn
 	
-Version 0.1.0
-	* Initial release
+Version 0.0.1 (5/30/20)
+	* Initial release; early development only-- this is not yet fully working.

@@ -11,7 +11,7 @@ import HeliumLogger
 import LoggerAPI
 import SwiftJWKtoPEM
 
-/// This is a JSON Web Key and must be converted to a PEM before you can decode
+/// This is a JSON Web Key and must be converted to a PEM (a public certificate) before you can decode
 /// a JWT. See also https://blog.curtisherbert.com/so-theyve-signed-in-with-apple-now-what/
 /// And see https://github.com/IBM-Swift/Swift-JWT/issues/77
 struct ApplePublicKey: Decodable {

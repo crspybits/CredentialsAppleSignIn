@@ -36,7 +36,7 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
     
     /// Initialize a `CredentialsAppleSignInToken` instance.
     ///
-    /// - Parameter clientId: The developer's Apple client_id -- used in Oauth token verification.
+    /// - Parameter clientId: The developer's Apple client_id -- used in Oauth token verification. e.g., com.foobar.appName
     /// - Parameter options: A dictionary of plugin specific options. The keys are defined in `CredentialsAppleSignInOptions`.
     public init(clientId: String, options: [String:Any]?=nil, tokenTimeToLive: TimeInterval? = nil) {
         delegate = options?[CredentialsAppleSignInOptions.userProfileDelegate] as? UserProfileDelegate
