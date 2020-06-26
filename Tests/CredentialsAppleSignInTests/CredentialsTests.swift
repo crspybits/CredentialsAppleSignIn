@@ -32,7 +32,7 @@ final class CredentialsTests: XCTestCase {
     var appleCredentials:CredentialsAppleSignInToken!
     let tokenTypeKey = "X-token-type"
     let accessTokenKey = "access_token"
-    let authTokenType = "AppleSignInToken"
+    let authTokenType = CredentialsAppleSignIn.tokenType
     let accountDetailsKey = "X-account-details"
     let plist: AppleSignInPlist = CredentialsTests.getPlist()
     
@@ -55,7 +55,7 @@ final class CredentialsTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        appleCredentials = CredentialsAppleSignInToken(clientId: plist.clientId)
+        appleCredentials = CredentialsAppleSignInToken(clientId: plist.clientId, options: [CredentialsAppleSignInOptions.userProfileDelegate: self])
         router = setupRouter()
     }
     
@@ -180,3 +180,7 @@ final class CredentialsTests: XCTestCase {
     }
 }
 
+extension CredentialsTests: UserProfileDelegate {
+    func update(userProfile: UserProfile, from dictionary: [String : Any]) {
+    }
+}

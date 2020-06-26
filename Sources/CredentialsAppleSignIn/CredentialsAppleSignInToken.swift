@@ -8,11 +8,13 @@ import HeliumLogger
 import Foundation
 import LoggerAPI
 
+public let tokenType = "AppleSignInToken"
+
 /// Authentication using Apple Sign In OAuth2 token.
 public class CredentialsAppleSignInToken: CredentialsPluginProtocol, CredentialsTokenTTL {
     /// The name of the plugin.
     public var name: String {
-        return "AppleSignInToken"
+        return tokenType
     }
     
     /// An indication as to whether the plugin is redirecting or not.
@@ -103,6 +105,7 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
         case failedGettingBodyData
         case failedDecodingPublicKey
         case failedVerifyingToken
+        case noExpiryInClaims
         case failedGettingSelf
     }
     
@@ -160,7 +163,15 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
                 return
             }
             
-            guard let userProfile = createUserProfile(from: claims, details: self.accountDetails, for: self.name) else {
+            guard let expiry = claims.exp else {
+                Log.error("No expiry in claims!")
+                completion(.error(FailureResult.noExpiryInClaims))
+                return
+            }
+            
+            Log.debug("expiry: \(expiry); issue time: \(String(describing: claims.iat))")
+            
+            guard let userProfile = createUserProfile(from: claims, details: self.accountDetails, for: self.name, appleSignInTokenExpiry: expiry) else {
                 Log.error("Failed to create user profile")
                 completion(.error(FailureResult.failedCreatingProfile))
                 return
