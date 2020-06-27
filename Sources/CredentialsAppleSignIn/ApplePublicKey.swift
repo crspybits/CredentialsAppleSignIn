@@ -36,7 +36,26 @@ extension ApplePublicKey {
         }
         
         let key = keys[Int(keyIndex)]
+        return getPEM(from: key)
+    }
+    
+    /// Uses the key with the kid given.
+    func toPEM(kid: String) -> String? {
+        var keyToUse: ApplePublicKey.Key?
+        for key in keys {
+            if key.kid == kid {
+                keyToUse = key
+            }
+        }
         
+        guard let key = keyToUse else {
+            return nil
+        }
+
+        return getPEM(from: key)
+    }
+    
+    private func getPEM(from key: ApplePublicKey.Key) -> String? {
         guard let n = key.n, let e = key.e else {
             return nil
         }
@@ -51,6 +70,7 @@ extension ApplePublicKey {
 }
 
 // NOTE: I'm not sure if the keys array will ever have more than one key and if so how to choose between them.
+// 6/26/20-- Indeed, I just ran into this. Two keys are returned, and the 0th one, which I was using before isn't working. See also https://developer.apple.com/forums/thread/129047 and https://github.com/Techofficer/node-apple-signin/issues/11
 /* Example:
  {
    "keys": [
@@ -80,6 +100,20 @@ extension ApplePublicKey {
         case failedValidateClaims
     }
     
+    private func getVerifier(using kid: String) -> JWTVerifier?  {
+        guard let publicKeyPEM = toPEM(kid: kid) else {
+            return nil
+        }
+        
+        guard let publicKeyData = publicKeyPEM.data(using: .utf8) else {
+            return nil
+        }
+        
+        // Example of usage:
+        // https://ibm-swift.github.io/Swift-JWT/Structs/JWTVerifier.html
+        return JWTVerifier.rs256(publicKey: publicKeyData)
+    }
+    
     /// clientId must be the developers Apple client_id as a String
     /// See https://forums.developer.apple.com/thread/117210
     /// https://developer.apple.com/documentation/signinwithapplejs/clientconfigi/3230948-clientid
@@ -89,23 +123,9 @@ extension ApplePublicKey {
         // This is from https://developer.apple.com/documentation/signinwithapplerestapi/verifying_a_user
         
         // Verify the JWS E256 signature using the server’s public key
-        guard let publicKeyPEM = toPEM(0) else {
-            return .failedPEMConversion
-        }
-        
-        guard let publicKeyData = publicKeyPEM.data(using: .utf8) else {
-            return .failedPEMConversionToData
-        }
-        
-        // Example of usage:
-        // https://ibm-swift.github.io/Swift-JWT/Structs/JWTVerifier.html
-        let jwtVerifier = JWTVerifier.rs256(publicKey: publicKeyData)
-        
-        guard JWT<AppleSignInClaims>.verify(token, using: jwtVerifier) else {
-            return .failedVerification
-        }
-        
-        let jwtDecoder = JWTDecoder(jwtVerifier: jwtVerifier)
+        //  *and* decode the claims.
+
+        let jwtDecoder = JWTDecoder(keyIDToVerifier: getVerifier)
 
         let claims: AppleSignInClaims
         do {

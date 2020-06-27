@@ -7,9 +7,12 @@ import Foundation
 /// with a Date value-- indicating when the token expires/expired.
 public let appleSignInTokenExpiryKey = "appleSignInTokenExpiry"
 
+/// Attempts to get the email first from claims, and then from the details.
 func createUserProfile(from claims:AppleSignInClaims, details: AccountDetails?, for provider: String, appleSignInTokenExpiry: Date) -> UserProfile? {
 
-    let userEmails = [UserProfile.UserProfileEmail(value: claims.email, type: "")]
+    let email = claims.email ?? details?.email ?? ""
+
+    let userEmails = [UserProfile.UserProfileEmail(value: email, type: "")]
     let displayName = details?.fullName ?? ""
     
     let name = UserProfile.UserProfileName(

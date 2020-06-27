@@ -141,7 +141,7 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
             do {
                 try response.readAllData(into: &body)
             } catch let error {
-                Log.debug("\(error)")
+                Log.error("\(error)")
                 completion(.error(FailureResult.failedGettingBodyData))
                 return
             }

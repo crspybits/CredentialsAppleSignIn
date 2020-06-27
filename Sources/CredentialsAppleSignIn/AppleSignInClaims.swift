@@ -31,10 +31,10 @@ class AppleSignInClaims: Claims {
     let nonce: String?
     
     // The user's email address.
-    let email: String
+    let email: String?
     
     // A Boolean value that indicates whether the service has verified the email. The value of this claim is always true because the servers only return verified email addresses.
-    let email_verified: String
+    let email_verified: String?
 }
 
 extension AppleSignInClaims {

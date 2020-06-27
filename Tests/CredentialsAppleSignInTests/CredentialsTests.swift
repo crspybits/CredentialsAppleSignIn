@@ -19,7 +19,7 @@ struct AppleSignInPlist: Decodable {
     // Developer's Apple client_id
     let clientId: String
     
-    // This needs to be the same as the email contained in the email field inside of the idToken-- i.e., the sign in email used with Apple Sign In
+    // This needs to be the same as the email contained in the email field inside of the idToken and/or the AccountDetails -- i.e., the sign in email used with Apple Sign In
     let email: String
     
     // This needs to be the same as the sub field contained inside of the idToken-- i.e., the user identifier used with Apple Sign In
@@ -35,7 +35,9 @@ final class CredentialsTests: XCTestCase {
     let authTokenType = CredentialsAppleSignIn.tokenType
     let accountDetailsKey = "X-account-details"
     let plist: AppleSignInPlist = CredentialsTests.getPlist()
-    
+    static let getEndpoint = "handler"
+    static let getEndpointPath = "/" + getEndpoint
+
     static func getPlist() -> AppleSignInPlist {
         // I know this is gross. Swift packages just don't have a good way to access resources right now.
         // See https://stackoverflow.com/questions/47177036
@@ -55,7 +57,7 @@ final class CredentialsTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        appleCredentials = CredentialsAppleSignInToken(clientId: plist.clientId, options: [CredentialsAppleSignInOptions.userProfileDelegate: self])
+        appleCredentials = CredentialsAppleSignInToken(clientId: plist.clientId)
         router = setupRouter()
     }
     
@@ -69,7 +71,7 @@ final class CredentialsTests: XCTestCase {
             self.credentials.handle(request: request, response: response, next: next)
         }
         
-        router.get("handler") { (request, response, next) in
+        router.get(Self.getEndpoint) { (request, response, next) in
             response.send("Done!")
         }
 
@@ -78,7 +80,7 @@ final class CredentialsTests: XCTestCase {
     
     func testRequestFailsWithNoAuthHeader() {
         performServerTest(router: router) { expectation in
-            self.performRequest(method: "get", path: "/handler", callback: { response in
+            self.performRequest(method: "get", path: Self.getEndpointPath, callback: { response in
                 guard response?.httpStatusCode == .unauthorized else {
                     XCTFail("response?.httpStatusCode.rawValue: \(String(describing: response?.httpStatusCode.rawValue))")
                     expectation.fulfill()
@@ -96,7 +98,7 @@ final class CredentialsTests: XCTestCase {
         ]
         
         performServerTest(router: router) { expectation in
-            self.performRequest(method: "get", path: "/handler", headers: headers, callback: { response in
+            self.performRequest(method: "get", path: Self.getEndpointPath, headers: headers, callback: { response in
                 guard response?.httpStatusCode == .unauthorized else {
                     XCTFail("response?.httpStatusCode.rawValue: \(String(describing: response?.httpStatusCode.rawValue))")
                     expectation.fulfill()
@@ -107,26 +109,51 @@ final class CredentialsTests: XCTestCase {
         }
     }
     
-    func testRequestSucceedsWithValidAuthHeader() {
+    func requestWithAuthHeader(validExpiry: Bool) {
         let headers: [String: String] = [
             accessTokenKey: plist.idToken,
             tokenTypeKey: authTokenType
         ]
         
         performServerTest(router: router) { expectation in
-            self.performRequest(method: "get", path: "/handler", headers: headers, callback: { response in
+            self.performRequest(method: "get", path: Self.getEndpointPath, headers: headers, callback: { response in
                 guard response?.httpStatusCode == .OK else {
                     XCTFail("response?.httpStatusCode.rawValue: \(String(describing: response?.httpStatusCode.rawValue))")
                     expectation.fulfill()
                     return
                 }
+                
+                guard let cache = self.appleCredentials.usersCache?.object(forKey: self.plist.idToken as NSString) else {
+                    XCTFail()
+                    expectation.fulfill()
+                    return
+                }
+                
+                guard let expiry = cache.userProfile.extendedProperties[CredentialsAppleSignIn.appleSignInTokenExpiryKey] as? Date else {
+                    XCTFail()
+                    expectation.fulfill()
+                    return
+                }
+                
+                if validExpiry {
+                    XCTAssert(expiry > Date())
+                }
+                else {
+                    XCTAssert(Date() >= expiry)
+                }
+                
                 expectation.fulfill()
             })
         }
     }
     
+    func testRequestSucceedsWithValidAuthHeaderAndUnexpiredToken() {
+        requestWithAuthHeader(validExpiry: true)
+    }
+    
+    // Doesn't check for token expiry.
     func testRequestSucceedsWithValidAuthHeaderAndAccountDetails() {
-        let accountDetails = AccountDetails(firstName: "Christopher", lastName: "Prince", fullName: "Christopher Prince")
+        let accountDetails = AccountDetails(firstName: "Christopher", lastName: "Prince", fullName: "Christopher Prince", email: "chris@cprince.com")
         let encoder = JSONEncoder()
         guard let accountDetailsData = try? encoder.encode(accountDetails),
             let accountDetailsString = String(data: accountDetailsData, encoding: .utf8) else {
@@ -145,7 +172,7 @@ final class CredentialsTests: XCTestCase {
         XCTAssert(appleCredentials.usersCache?.object(forKey: plist.idToken as NSString) == nil)
         
         performServerTest(router: router) { expectation in
-            self.performRequest(method: "get", path: "/handler", headers: headers, callback: { response in
+            self.performRequest(method: "get", path: Self.getEndpointPath, headers: headers, callback: { response in
                 guard response?.httpStatusCode == .OK else {
                     XCTFail("response?.httpStatusCode.rawValue: \(String(describing: response?.httpStatusCode.rawValue))")
                     expectation.fulfill()
@@ -178,9 +205,9 @@ final class CredentialsTests: XCTestCase {
             })
         }
     }
-}
-
-extension CredentialsTests: UserProfileDelegate {
-    func update(userProfile: UserProfile, from dictionary: [String : Any]) {
+    
+    // Only run this with an expired token
+    func testRequestSucceedsWithValidAuthHeaderAndExpiredToken() {
+        requestWithAuthHeader(validExpiry: false)
     }
 }
