@@ -24,6 +24,20 @@ struct AppleSignInPlist: Decodable {
     
     // This needs to be the same as the sub field contained inside of the idToken-- i.e., the user identifier used with Apple Sign In
     let sub: String
+    
+    static func load(from url: URL) -> Self {
+        guard let data = try? Data(contentsOf: url) else {
+            fatalError("Could not get data from url")
+        }
+
+        let decoder = PropertyListDecoder()
+
+        guard let plist = try? decoder.decode(Self.self, from: data) else {
+            fatalError("Could not decode the plist")
+        }
+
+        return plist
+    }
 }
 
 final class CredentialsTests: XCTestCase {
@@ -34,26 +48,15 @@ final class CredentialsTests: XCTestCase {
     let accessTokenKey = "access_token"
     let authTokenType = CredentialsAppleSignIn.tokenType
     let accountDetailsKey = "X-account-details"
-    let plist: AppleSignInPlist = CredentialsTests.getPlist()
+    
+    // I know this is gross. Swift packages just don't have a good way to access resources right now.
+    // See https://stackoverflow.com/questions/47177036
+    let plist: AppleSignInPlist = AppleSignInPlist.load(from: URL(fileURLWithPath: "/Users/chris/Desktop/Apps/SyncServerII/Private/CredentialsAppleSignIn/token.plist"))
+    
     static let getEndpoint = "handler"
     static let getEndpointPath = "/" + getEndpoint
 
-    static func getPlist() -> AppleSignInPlist {
-        // I know this is gross. Swift packages just don't have a good way to access resources right now.
-        // See https://stackoverflow.com/questions/47177036
-        let url = URL(fileURLWithPath: "/Users/chris/Desktop/Apps/SyncServerII/Private/CredentialsAppleSignIn/token.plist")
-        guard let data = try? Data(contentsOf: url) else {
-            fatalError("Could not get data from url")
-        }
 
-        let decoder = PropertyListDecoder()
-
-        guard let plist = try? decoder.decode(AppleSignInPlist.self, from: data) else {
-            fatalError("Could not decode the plist")
-        }
-
-        return plist
-    }
     
     override func setUp() {
         super.setUp()
