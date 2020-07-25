@@ -14,7 +14,6 @@ let package = Package(
     dependencies: [
         //.package(url: "../Kitura-Credentials", .branch("master")),
         .package(url: "https://github.com/IBM-Swift/Kitura-Credentials.git", .upToNextMajor(from: "2.4.1")),
-        
         .package(url: "https://github.com/IBM-Swift/Swift-JWT.git", from: "3.5.3"),
         .package(url: "https://github.com/IBM-Swift/HeliumLogger.git", from: "1.8.1"),
         .package(url: "https://github.com/ibm-cloud-security/Swift-JWK-to-PEM.git", from: "0.4.0")
