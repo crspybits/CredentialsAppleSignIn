@@ -1,6 +1,6 @@
 # CredentialsAppleSignIn
 
-A Kitura Credentials plugin for Apple Sign In that operates in a somewhat non-standard way -- relative to other Kitura Credentials plugins. Other Kitura Credentials plugins that I've seen consider credentials to be valid only if they can, with certainty, determine if the credentials are valid. [The identity token with Apple Sign In, however, cannot be checked in this manner](https://medium.com/@crspybits/part-ii-apple-sign-in-custom-servers-and-an-expiry-conundrum-b3e9735dc079#45ed-bcd64527751a).
+A Kitura Credentials plugin for Apple Sign In that operates in a somewhat non-standard way -- relative to other Kitura Credentials plugins. Other Kitura Credentials plugins that I've seen consider credentials to be valid only if they can, with certainty, determine if the credentials are valid. [The identity token with Apple Sign In, however, cannot always be checked in this manner](https://medium.com/@crspybits/part-ii-apple-sign-in-custom-servers-and-an-expiry-conundrum-b3e9735dc079#45ed-bcd64527751a).
 
 Instead, the result of processing with this Apple Sign In Kitura Credentials plugin has three states:
 1) The plugin fails to authenticate the user — e.g., if an invalid identity token is given to the plugin;
