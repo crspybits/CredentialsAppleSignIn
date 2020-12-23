@@ -10,7 +10,7 @@ import LoggerAPI
 public let appleSignInTokenExpiryKey = "appleSignInTokenExpiry"
 
 /// Attempts to get the email first from claims, and then from the details.
-func createUserProfile(from claims:AppleSignInClaims, details: AccountDetails?, for provider: String, appleSignInTokenExpiry: Date) -> UserProfile? {
+func createUserProfile(from claims:CredentialsTokenClaims, details: AccountDetails?, for provider: String, appleSignInTokenExpiry: Date) -> UserProfile? {
 
     let email = claims.email ?? details?.email ?? ""
 

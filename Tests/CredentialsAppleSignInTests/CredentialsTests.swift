@@ -11,7 +11,6 @@ import Kitura
 import KituraNet
 import Credentials
 import KituraSession
-import SwiftJWT
 
 struct AppleSignInPlist: Decodable {
     let idToken: String // the Oauth2 JWT from Apple Sign In

@@ -1,5 +1,8 @@
 CredentialsAppleSignIn
 
+Version 0.0.3 (12/23/20)
+	Refactored to use AppleJWTDecoder package.
+	
 Version 0.0.2 (12/23/20)
 	* Have basic functionality working; trying to resolve some SPM issues.
 	

@@ -1,17 +1,17 @@
 //
-//  AppleSignInClaims.swift
+//  CredentialsTokenClaims.swift
 //  CredentialsAppleSignIn
 //
 //  Created by Christopher G Prince on 9/12/19.
 //
 
 import Foundation
-import SwiftJWT
+import AppleJWTDecoder
 
 // For these fields,
 // See https://developer.apple.com/documentation/signinwithapplerestapi/authenticating_users_with_sign_in_with_apple
 
-class AppleSignInClaims: Claims {
+class CredentialsTokenClaims: AppleClaims {
     // The issuer-registered claim key, which has the value https://appleid.apple.com.
     let iss: String
     
@@ -35,23 +35,23 @@ class AppleSignInClaims: Claims {
     
     // A Boolean value that indicates whether the service has verified the email. The value of this claim is always true because the servers only return verified email addresses.
     let email_verified: String?
-}
 
-extension AppleSignInClaims {
-    /// Like the method in the JWT, but does not validate the expiry date.
-    func validateClaims(leeway: TimeInterval = 0) -> ValidateClaimsResult {
+    func validateClaims() -> Bool {
+        let leeway: TimeInterval = 0
+        
         if let notBeforeDate = nbf {
             if notBeforeDate > Date() + leeway {
-                return .notBefore
+                return false
             }
         }
         
         if let issuedAtDate = iat {
             if issuedAtDate > Date() + leeway {
-                return .issuedAt
+                return false
             }
         }
         
-        return .success
+        return true
     }
 }
+

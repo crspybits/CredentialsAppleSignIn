@@ -7,6 +7,7 @@ import Credentials
 import HeliumLogger
 import Foundation
 import LoggerAPI
+import AppleJWTDecoder
 
 public let tokenType = "AppleSignInToken"
 
@@ -97,83 +98,50 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
         getProfileAndCacheIfNeeded(token: accessToken, options: options, onSuccess: onSuccess, onFailure: onFailure)
     }
     
-    enum FailureResult: Swift.Error {
-        case badResponse
-        case statusCode(HTTPStatusCode)
-        case failedSerialization
+    enum CredentialsAppleSignInTokenError: Swift.Error {
         case failedCreatingProfile
-        case failedGettingBodyData
-        case failedDecodingPublicKey
         case failedVerifyingToken
         case noExpiryInClaims
-        case failedGettingSelf
+        case failureResult(FailureResult)
     }
     
     // Validate the id token provided by the user-- to the extent we can (without checking its expiry).
     public func generateNewProfile(token: String, options: [String:Any], completion: @escaping (CredentialsTokenTTLResult) -> Void) {
     
-        // Get Apple's public key to validate the token
-        // https://developer.apple.com/documentation/signinwithapplerestapi/fetch_apple_s_public_key_for_verifying_token_signature
-
-        var requestOptions: [ClientRequest.Options] = []
-        requestOptions.append(.schema("https://"))
-        requestOptions.append(.hostname("appleid.apple.com"))
-        requestOptions.append(.method("GET"))
-        requestOptions.append(.path("/auth/keys"))
-
-        let req = HTTP.request(requestOptions) {[weak self] response in
-            guard let self = self else {
-                completion(.error(FailureResult.failedGettingSelf))
+        ApplePublicKey.httpFetch { (result: Swift.Result<ApplePublicKey<CredentialsTokenClaims>, FailureResult>) in
+            let applePublicKey:ApplePublicKey<CredentialsTokenClaims>
+            switch result {
+            case .success(let key):
+                applePublicKey = key
+                
+            case .failure(let failure):
+                completion(.error(CredentialsAppleSignInTokenError.failureResult(failure)))
                 return
             }
             
-            guard let response = response else {
-                completion(.error(FailureResult.badResponse))
+            let verifyResult = applePublicKey.verifyToken(token, clientId: self.clientId)
+            let tokenClaims: CredentialsTokenClaims
+            switch verifyResult {
+            case .success(let claims):
+                Log.info("claims: \(claims)")
+                tokenClaims = claims
+            default:
+                Log.error("Failed token verification: \(verifyResult)")
+                completion(.error(CredentialsAppleSignInTokenError.failedVerifyingToken))
                 return
             }
             
-            guard response.statusCode == HTTPStatusCode.OK else {
-                completion(.failure(response.statusCode, nil))
-                return
-            }
-            
-            var body = Data()
-            do {
-                try response.readAllData(into: &body)
-            } catch let error {
-                Log.error("\(error)")
-                completion(.error(FailureResult.failedGettingBodyData))
-                return
-            }
-
-            let applePublicKey:ApplePublicKey
-            
-            do {
-                applePublicKey = try self.decoder.decode(ApplePublicKey.self, from: body)
-            } catch let error {
-                Log.error("Failed to decode public key: \(error)")
-                completion(.error(FailureResult.failedDecodingPublicKey))
-                return
-            }
-            
-            let tokenVerificationResult = applePublicKey.verifyToken(token, clientId: self.clientId)
-            guard case .success(let claims) = tokenVerificationResult else {
-                Log.error("Failed token verification: \(tokenVerificationResult)")
-                completion(.error(FailureResult.failedVerifyingToken))
-                return
-            }
-            
-            guard let expiry = claims.exp else {
+            guard let expiry = tokenClaims.exp else {
                 Log.error("No expiry in claims!")
-                completion(.error(FailureResult.noExpiryInClaims))
+                completion(.error(CredentialsAppleSignInTokenError.noExpiryInClaims))
                 return
             }
             
-            Log.debug("expiry: \(expiry); issue time: \(String(describing: claims.iat))")
+            Log.debug("expiry: \(expiry); issue time: \(String(describing: tokenClaims.iat))")
             
-            guard let userProfile = createUserProfile(from: claims, details: self.accountDetails, for: self.name, appleSignInTokenExpiry: expiry) else {
+            guard let userProfile = createUserProfile(from: tokenClaims, details: self.accountDetails, for: self.name, appleSignInTokenExpiry: expiry) else {
                 Log.error("Failed to create user profile")
-                completion(.error(FailureResult.failedCreatingProfile))
+                completion(.error(CredentialsAppleSignInTokenError.failedCreatingProfile))
                 return
             }
             
@@ -183,7 +151,5 @@ public class CredentialsAppleSignInToken: CredentialsPluginProtocol, Credentials
             
             completion(.success(userProfile))
         }
-        
-        req.end()
     }
 }

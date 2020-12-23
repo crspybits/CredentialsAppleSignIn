@@ -2,6 +2,15 @@
   "object": {
     "pins": [
       {
+        "package": "AppleJWTDecoder",
+        "repositoryURL": "https://github.com/SyncServerII/AppleJWTDecoder.git",
+        "state": {
+          "branch": null,
+          "revision": "862f4c6991433eadaf787ce539b97531c686c1a3",
+          "version": "0.0.3"
+        }
+      },
+      {
         "package": "Cryptor",
         "repositoryURL": "https://github.com/IBM-Swift/BlueCryptor.git",
         "state": {
@@ -30,20 +39,20 @@
       },
       {
         "package": "Socket",
-        "repositoryURL": "https://github.com/IBM-Swift/BlueSocket.git",
+        "repositoryURL": "https://github.com/Kitura/BlueSocket.git",
         "state": {
           "branch": null,
-          "revision": "c46a3d41f5b2401d18bcb46d0101cdc5cd13e307",
-          "version": "1.0.52"
+          "revision": "c9894fd117457f1d006575fbfb2fdfd6f79eac03",
+          "version": "1.0.200"
         }
       },
       {
         "package": "SSLService",
-        "repositoryURL": "https://github.com/IBM-Swift/BlueSSLService.git",
+        "repositoryURL": "https://github.com/Kitura/BlueSSLService.git",
         "state": {
           "branch": null,
-          "revision": "ab2c2aa2fe574969f391c80ee87746be431dee0e",
-          "version": "1.0.52"
+          "revision": "ae5889d2a8b068d2d3ab91ec73aa8f557c03cd8a",
+          "version": "1.0.200"
         }
       },
       {
@@ -75,11 +84,11 @@
       },
       {
         "package": "Kitura-net",
-        "repositoryURL": "https://github.com/IBM-Swift/Kitura-net.git",
+        "repositoryURL": "https://github.com/Kitura/Kitura-net.git",
         "state": {
           "branch": null,
-          "revision": "00985729329b73f3e20e40ec43071e4c294dfea3",
-          "version": "2.4.0"
+          "revision": "e017a57772eb477c294d72b25ab9ae38d25539f5",
+          "version": "2.4.200"
         }
       },
       {
@@ -111,11 +120,11 @@
       },
       {
         "package": "LoggerAPI",
-        "repositoryURL": "https://github.com/IBM-Swift/LoggerAPI.git",
+        "repositoryURL": "https://github.com/Kitura/LoggerAPI.git",
         "state": {
           "branch": null,
-          "revision": "3357dd9526cdf9436fa63bb792b669e6efdc43da",
-          "version": "1.9.0"
+          "revision": "e82d34eab3f0b05391082b11ea07d3b70d2f65bb",
+          "version": "1.9.200"
         }
       },
       {
