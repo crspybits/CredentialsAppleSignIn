@@ -2,6 +2,8 @@
 
 import Credentials
 import Foundation
+import HeliumLogger
+import LoggerAPI
 
 /// extendedProperties in the UserProfile will have the key `appleSignInTokenExpiryKey`
 /// with a Date value-- indicating when the token expires/expired.
@@ -19,6 +21,8 @@ func createUserProfile(from claims:AppleSignInClaims, details: AccountDetails?, 
         familyName: details?.lastName ?? "",
         givenName: details?.firstName ?? "",
         middleName: "")
+        
+    Log.debug("CredentialsAppleSignIn: createUserProfile: Email: \(email); displayName: \(displayName); lastName: \(String(describing: details?.lastName)); firstName: \(String(describing: details?.firstName))")
     
     return UserProfile(id: claims.sub, displayName: displayName, provider: provider, name: name, emails: userEmails, photos: nil, extendedProperties: [appleSignInTokenExpiryKey: appleSignInTokenExpiry])
 }
