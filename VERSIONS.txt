@@ -1,4 +1,7 @@
 CredentialsAppleSignIn
+
+Version 0.0.2 (12/23/20)
+	* Have basic functionality working; trying to resolve some SPM issues.
 	
 Version 0.0.1 (5/30/20)
 	* Initial release; early development only-- this is not yet fully working.
