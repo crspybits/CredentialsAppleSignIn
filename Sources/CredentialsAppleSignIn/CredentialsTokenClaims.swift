@@ -39,7 +39,9 @@ class CredentialsTokenClaims: AppleClaims {
     let email_verified: String?
 
     func validateClaims() -> Bool {
+        // 1/10/21; I had this as 0, but I just got a failure on one of the two checks below. I think it was due to clock skew. Increasing it to 120 now.
         let leeway: TimeInterval = 120
+        
         let today = Date()
         
         if let notBeforeDate = nbf {
