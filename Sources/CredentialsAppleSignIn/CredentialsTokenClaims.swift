@@ -7,6 +7,8 @@
 
 import Foundation
 import AppleJWTDecoder
+import HeliumLogger
+import LoggerAPI
 
 // For these fields,
 // See https://developer.apple.com/documentation/signinwithapplerestapi/authenticating_users_with_sign_in_with_apple
@@ -37,16 +39,19 @@ class CredentialsTokenClaims: AppleClaims {
     let email_verified: String?
 
     func validateClaims() -> Bool {
-        let leeway: TimeInterval = 0
+        let leeway: TimeInterval = 120
+        let today = Date()
         
         if let notBeforeDate = nbf {
-            if notBeforeDate > Date() + leeway {
+            if notBeforeDate > today + leeway {
+                Log.error("notBeforeDate: \(notBeforeDate) > today: \(today)")
                 return false
             }
         }
         
         if let issuedAtDate = iat {
-            if issuedAtDate > Date() + leeway {
+            if issuedAtDate > today + leeway {
+                Log.error("issuedAtDate: \(issuedAtDate) > today: \(today)")
                 return false
             }
         }
